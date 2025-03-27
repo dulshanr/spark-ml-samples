@@ -56,7 +56,9 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
             System.out.println("Probability: " + probability);
             System.out.println("------------------------------------------------\n");
 
-            return new GenrePrediction(getGenre(prediction).getName(), probability.apply(0), probability.apply(1));
+            return new GenrePrediction(getGenre(prediction).getName(), probability.apply(0), probability.apply(1),
+                    probability.apply(2), probability.apply(3), probability.apply(4), probability.apply(5),
+                    probability.apply(6));
         }
 
         System.out.println("------------------------------------------------\n");
@@ -64,8 +66,14 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
     }
 
     Dataset<Row> readLyrics() {
-        Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.METAL)
-                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.POP));
+        Dataset input = readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.Blues)
+                                                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.Country))
+                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.Hiphop))
+                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.Jazz))
+                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.Pop))
+                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.Reggae))
+                .union(readLyricsForGenre(lyricsTrainingSetDirectoryPath, Genre.Rock));
+
         // Reduce the input amount of partition minimal amount (spark.default.parallelism OR 2, whatever is less)
         input = input.coalesce(sparkSession.sparkContext().defaultMinPartitions()).cache();
         // Force caching.
@@ -75,7 +83,7 @@ public abstract class CommonLyricsPipeline implements LyricsPipeline {
     }
 
     private Dataset<Row> readLyricsForGenre(String inputDirectory, Genre genre) {
-        Dataset<Row> lyrics = readLyrics(inputDirectory, genre.name().toLowerCase() + "/*");
+        Dataset<Row> lyrics = readLyrics(inputDirectory, genre.name().toLowerCase());
         Dataset<Row> labeledLyrics = lyrics.withColumn(LABEL.getName(), functions.lit(genre.getValue()));
 
         System.out.println(genre.name() + " music sentences = " + lyrics.count());
